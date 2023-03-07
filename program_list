@@ -1,0 +1,234 @@
+#!/bin/bash
+# ---------------------------------------------------------------------------
+# program_list - Produce an annotated listing of programs
+
+# Copyright 2014, William Shotts <bshotts@users.sourceforge.net>
+  
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License at <http://www.gnu.org/licenses/> for
+# more details.
+
+# This program creates an annotated list of the programs in /usr/bin
+# (or user-specified directory) including the filename, the package
+# from which it was installed and a brief description taken from the
+# program's man page, if available. The format of the listing can be
+# plain text (the default), tab-separated values (useful for importing
+# the listing into other programs), or Markdown format (with pandoc
+# table extensions).
+
+# Usage:  program_list [-h|--help]
+#         program_list [[-m|--markdown]|[-t|--tabs]] [directory]
+
+# Revision history:
+# 2014-01-27 Strengthened against ugly file names (ver. 1.1)
+# 2014-01-17 Created by new_script ver. 3.1
+# ---------------------------------------------------------------------------
+
+PROGNAME=${0##*/}
+VERSION="1.1"
+
+clean_up() { # Perform pre-exit housekeeping
+  return
+}
+
+error_exit() { # Handle fatal errors
+  echo -e "${PROGNAME}: ${1:-"Unknown Error"}" >&2
+  clean_up
+  exit 1
+}
+
+graceful_exit() {
+  clean_up
+  exit
+}
+
+signal_exit() { # Handle trapped signals
+  case $1 in
+    INT)
+      error_exit "Program interrupted by user" ;;
+    TERM)
+      echo -e "\n$PROGNAME: Program terminated" >&2
+      graceful_exit ;;
+    *)
+      error_exit "$PROGNAME: Terminating on unknown signal" ;;
+  esac
+}
+
+usage() {
+  echo -e "Usage: $PROGNAME [-h|--help]|[[-m|-t] [directory]]"
+}
+
+help_message() {
+  cat <<- _EOF_
+  $PROGNAME ver. $VERSION
+  Produce an annotated listing of programs in a directory
+
+  $(usage)
+
+  Options:
+  -h, --help      Display this help message and exit.
+  -m, --markdown  Output Markdown formatted text (with pandoc
+                  extensions).
+  -t, --tabs      Output tab-separated values.
+  
+  directory is optional. Default is /usr/bin.
+
+_EOF_
+  return
+}
+
+set_mode() { # Set the output mode
+  if [[ $mode == "empty" ]]; then
+    mode=$1
+  else
+    error_exit "Only one mode (-m or -t) is allowed."
+  fi
+}
+
+string() { # Write a string of character "char" repeated "width" times
+
+  local -i width="$1"
+  local char="$2"
+
+  head -c "$width" < /dev/zero | tr '\0' "$char"
+}
+
+find_package() { # Search for package name based on distro
+
+  local filename="$1" raw_package
+
+  case $distro_style in
+    debian)
+      raw_package="$(dpkg-query -S "$filename" 2> /dev/null | tail -1)"
+      echo "${raw_package%:*}"
+      ;;
+    redhat)
+      rpm -qf "$filename" 2> /dev/null
+      ;;
+    *)
+      error_exit "Unsupported distribution."
+      ;;
+  esac
+}
+
+# Trap signals
+trap "signal_exit TERM" TERM HUP
+trap "signal_exit INT"  INT
+
+# Parse command-line
+mode=empty
+program_directory=/usr/bin
+while [[ -n "$1" ]]; do
+  case "$1" in
+    -h | --help)
+      help_message
+      graceful_exit
+      ;;
+    -m | --markdown)
+      set_mode markdown
+      ;;
+    -t | --tabs)
+      set_mode tsv
+      ;;
+    -* | --*)
+      usage
+      error_exit "Unknown option $1"
+      ;;
+    *)
+      program_directory="$1"
+      break
+      ;;
+  esac
+  shift
+done
+
+# Main logic
+
+declare -a filenames packages descriptions
+declare -i index=1 max_fn_len=0 fn_len=0 col1_width col2_width
+distro_style="unknown"
+
+# Determine type of packaging system
+[[ -x /usr/bin/apt-get ]] && distro_style="debian"
+[[ -x /bin/rpm || -x /usr/bin/rpm ]] && distro_style="redhat"
+
+# Check if program_directory is valid
+[[ -d "$program_directory" ]] || \
+  error_exit "$program_directory cannot be read"
+  
+# Load arrays with filenames, packages, and descriptions
+while IFS= read -r i; do
+  filenames[index]="${i##*/}"
+  fn_len=${#filenames[index]}
+  # Determine longest filename for column width calculation
+  [[ $fn_len -gt $max_fn_len ]] && max_fn_len=$fn_len
+
+  packages[index]="$(find_package "$i")"
+
+  # Get program description, strip off beginning and capitalize
+  # first letter of first word.
+  raw_description="$(whatis "${filenames[index]}" 2>/dev/null | head -1)"
+  raw_description="${raw_description##*' - '}"
+  descriptions[index]="${raw_description^*}"
+
+  ((++index))
+done < <(find "$program_directory" -mindepth 1 -maxdepth 1 -executable \
+          -not -type d | sort -u)
+
+# Insert Markdown header
+if [[ $mode == "markdown" ]]; then
+  markdown_header="Programs in $program_directory"
+  echo -e "$markdown_header\n$(string ${#markdown_header} "=")\n\n"
+  ((max_fn_len += 4)) # allow for extra characters added to filenames
+fi
+
+# Calculate column widths
+col1_width=$((max_fn_len + 1))
+col2_width=$((80 - col1_width))
+
+# Insert Markdown table
+if [[ $mode == "markdown" ]]; then
+  echo "$(string $max_fn_len '-') $(string $col2_width '-')"
+fi
+
+for ((i=1; i<index; ++i)); do
+  case $mode in
+    empty)
+      printf "%-${max_fn_len}s Package:%s\n" \
+        "${filenames[i]}" \
+        "${packages[i]}"
+      # Fold description for second column
+      echo "${descriptions[i]}" | \
+        fold -s -w $col2_width | \
+        pr -T -o $col1_width
+      echo
+      ;;
+    tsv)
+      printf "%s\t%s\t%s\n" \
+        "${filenames[i]}" \
+        "${packages[i]}" \
+        "${descriptions[i]}" 
+      ;;
+    markdown)
+      printf "%-${max_fn_len}s Package:%s\n\n" \
+        "**${filenames[i]}**" \
+        "${packages[i]}"
+      echo "${descriptions[i]}" | \
+        fold -s -w $col2_width | \
+        pr -T -o $col1_width
+      echo
+      ;;
+  esac
+done
+
+# Close Markdown table
+[[ $mode == "markdown" ]] && echo -e "$(string 80 '-')\n"
+
+graceful_exit
