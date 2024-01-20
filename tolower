@@ -1,0 +1,2 @@
+#/usr/bin/env sh
+VERBIAGE="$@" test -z VERBIAGE || { echo "$@" | tr '[[:upper:]]' '[[:lower:]]' }
