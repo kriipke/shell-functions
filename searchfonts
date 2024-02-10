@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+
+#set -x
+#   [ MAKE MARKDOWN TABLE of FONT INFO USING `fc-list` ]
+#   ----------------------------------------------------
+#
+#     Generate a table of font information based off a regex used to
+#     search over the Font Family category using fc-list
+
+#  If no argument is given to use as the regex
+#. then set a default regex to search for Cousine
+if [[ "x$1" == "x" ]]; then
+        regex='[Cc]ousine'
+else
+        regex="$1"
+fi
+
+FONT_FAMILY_CSV="$(
+        printf '%s\n%s\n' \
+                "$(echo FONT\ FAMILY:FONT\ STYLE:TRUETYPE\ FILE)" \
+                "$(
+                        fc-list : name family style file |
+                                awk -F: '{ printf("%s,%s,%s\n", $2, $3, $1 )}' |
+                                sed -E 's/ ?, ?/,/' |
+                                grep -i "$regex" |
+                                tr , ':' |
+                                sed 's/^[[:space:]]*//' |
+                                sort
+                )" | tr ':' ','
+)"
+
+echo "$FONT_FAMILY_CSV" | csvlook || {
+        echo "Failed to generate markdown table with $(csvlook), here's the CSV itself:"
+        echo "$FONT_FAMILY_CSV"
+}
+
+#set +x
