@@ -5,6 +5,29 @@
 #
 #     Generate a table of font information based off a regex used to
 #     search over the Font Family category using fc-list
+#
+#     [[ EXAMPLE ]] :
+# 
+# | FONT FAMILY             | FONT STYLE        | TRUETYPE FILE                                                         |
+# | ----------------------- | ----------------- | --------------------------------------------------------------------- |
+# | Cousine Nerd Font Mono  | style=Bold Italic | /usr/share/fonts/truetype/cousine/CousineNerdFontMono-BoldItalic.ttf  |
+# | Cousine Nerd Font Mono  | style=Bold        | /usr/share/fonts/truetype/cousine/CousineNerdFontMono-Bold.ttf        |
+# | Cousine Nerd Font Mono  | style=Italic      | /usr/share/fonts/truetype/cousine/CousineNerdFontMono-Italic.ttf      |
+# | Cousine Nerd Font Mono  | style=Regular     | /usr/share/fonts/truetype/cousine/CousineNerdFontMono-Regular.ttf     |
+# | Cousine Nerd Font Propo | style=Bold Italic | /usr/share/fonts/truetype/cousine/CousineNerdFontPropo-BoldItalic.ttf |
+# | Cousine Nerd Font Propo | style=Bold        | /usr/share/fonts/truetype/cousine/CousineNerdFontPropo-Bold.ttf       |
+# | Cousine Nerd Font Propo | style=Italic      | /usr/share/fonts/truetype/cousine/CousineNerdFontPropo-Italic.ttf     |
+# | Cousine Nerd Font Propo | style=Regular     | /usr/share/fonts/truetype/cousine/CousineNerdFontPropo-Regular.ttf    |
+# | Cousine Nerd Font       | style=Bold Italic | /usr/share/fonts/truetype/cousine/CousineNerdFont-BoldItalic.ttf      |
+# | Cousine Nerd Font       | style=Bold        | /usr/share/fonts/truetype/cousine/CousineNerdFont-Bold.ttf            |
+# | Cousine Nerd Font       | style=Italic      | /usr/share/fonts/truetype/cousine/CousineNerdFont-Italic.ttf          |
+# | Cousine Nerd Font       | style=Regular     | /usr/share/fonts/truetype/cousine/CousineNerdFont-Regular.ttf         |
+# | Cousine                 | style=Bold Italic | /usr/share/fonts/truetype/croscore/Cousine-BoldItalic.ttf             |
+# | Cousine                 | style=Bold        | /usr/share/fonts/truetype/croscore/Cousine-Bold.ttf                   |
+# | Cousine                 | style=Italic      | /usr/share/fonts/truetype/croscore/Cousine-Italic.ttf                 |
+# | Cousine                 | style=Regular     | /usr/share/fonts/truetype/croscore/Cousine-Regular.ttf                |
+#
+
 
 #  If no argument is given to use as the regex
 #. then set a default regex to search for Cousine
