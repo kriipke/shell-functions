@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-#set -x
 #   [ MAKE MARKDOWN TABLE of FONT INFO USING `fc-list` ]
 #   ----------------------------------------------------
 #
@@ -33,5 +32,3 @@ echo "$FONT_FAMILY_CSV" | csvlook || {
         echo "Failed to generate markdown table with $(csvlook), here's the CSV itself:"
         echo "$FONT_FAMILY_CSV"
 }
-
-#set +x
