@@ -1,29 +1,11 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
+#set -x
 #   [ MAKE MARKDOWN TABLE of FONT INFO USING `fc-list` ]
 #   ----------------------------------------------------
 #
 #     Generate a table of font information based off a regex used to
 #     search over the Font Family category using fc-list
-#
-#     [[ EXAMPLE ]] :
-# 
-# | FONT FAMILY             | FONT STYLE        | TRUETYPE FILE                                                         |
-# | ----------------------- | ----------------- | --------------------------------------------------------------------- |
-# | Cousine Nerd Font Mono  | style=Bold Italic | /usr/share/fonts/truetype/cousine/CousineNerdFontMono-BoldItalic.ttf  |
-# | Cousine Nerd Font Mono  | style=Bold        | /usr/share/fonts/truetype/cousine/CousineNerdFontMono-Bold.ttf        |
-# | Cousine Nerd Font Mono  | style=Italic      | /usr/share/fonts/truetype/cousine/CousineNerdFontMono-Italic.ttf      |
-# | Cousine Nerd Font Mono  | style=Regular     | /usr/share/fonts/truetype/cousine/CousineNerdFontMono-Regular.ttf     |
-# | Cousine Nerd Font Propo | style=Bold Italic | /usr/share/fonts/truetype/cousine/CousineNerdFontPropo-BoldItalic.ttf |
-# | Cousine Nerd Font Propo | style=Bold        | /usr/share/fonts/truetype/cousine/CousineNerdFontPropo-Bold.ttf       |
-# | Cousine Nerd Font Propo | style=Italic      | /usr/share/fonts/truetype/cousine/CousineNerdFontPropo-Italic.ttf     |
-# | Cousine Nerd Font Propo | style=Regular     | /usr/share/fonts/truetype/cousine/CousineNerdFontPropo-Regular.ttf    |
-# | Cousine Nerd Font       | style=Bold Italic | /usr/share/fonts/truetype/cousine/CousineNerdFont-BoldItalic.ttf      |
-# | Cousine Nerd Font       | style=Bold        | /usr/share/fonts/truetype/cousine/CousineNerdFont-Bold.ttf            |
-# | Cousine Nerd Font       | style=Italic      | /usr/share/fonts/truetype/cousine/CousineNerdFont-Italic.ttf          |
-# | Cousine Nerd Font       | style=Regular     | /usr/share/fonts/truetype/cousine/CousineNerdFont-Regular.ttf         |
-#
-
 
 #  If no argument is given to use as the regex
 #. then set a default regex to search for Cousine
@@ -38,7 +20,7 @@ FONT_FAMILY_CSV="$(
                 "$(echo FONT\ FAMILY:FONT\ STYLE:TRUETYPE\ FILE)" \
                 "$(
                         fc-list : name family style file |
-                                awk -F: '{ printf("%s,%s,%s\n", $2, $3, $1 )}' |
+                                awk -F: '{ gsub(/style=/,"",$3); printf("%s,%s,%s\n", $2, $3, $1 )}' |
                                 sed -E 's/ ?, ?/,/' |
                                 grep -i "$regex" |
                                 tr , ':' |
@@ -47,7 +29,59 @@ FONT_FAMILY_CSV="$(
                 )" | tr ':' ','
 )"
 
-echo "$FONT_FAMILY_CSV" | csvlook || {
-        echo "Failed to generate markdown table with $(csvlook), here's the CSV itself:"
-        echo "$FONT_FAMILY_CSV"
-}
+# EXAMPLE MARKDOWN TABLE AS SAVED in "$FONT_FAMILY_MARKDOWN_TABLE"
+#
+#  | FONT FAMILY             | FONT STYLE        | TRUETYPE FILE                                                         |
+#  | ----------------------- | ----------------- | --------------------------------------------------------------------- |
+#  | Cousine Nerd Font Mono  | style=Bold Italic | /usr/share/fonts/truetype/cousine/CousineNerdFontMono-BoldItalic.ttf  |
+#  | Cousine Nerd Font Mono  | style=Bold        | /usr/share/fonts/truetype/cousine/CousineNerdFontMono-Bold.ttf        |
+#  | Cousine Nerd Font Mono  | style=Italic      | /usr/share/fonts/truetype/cousine/CousineNerdFontMono-Italic.ttf      |
+#  | Cousine Nerd Font Mono  | style=Regular     | /usr/share/fonts/truetype/cousine/CousineNerdFontMono-Regular.ttf     |
+#  | Cousine Nerd Font Propo | style=Bold Italic | /usr/share/fonts/truetype/cousine/CousineNerdFontPropo-BoldItalic.ttf |
+#  | Cousine Nerd Font Propo | style=Bold        | /usr/share/fonts/truetype/cousine/CousineNerdFontPropo-Bold.ttf       |
+#  | Cousine Nerd Font Propo | style=Italic      | /usr/share/fonts/truetype/cousine/CousineNerdFontPropo-Italic.ttf     |
+#  | Cousine Nerd Font Propo | style=Regular     | /usr/share/fonts/truetype/cousine/CousineNerdFontPropo-Regular.ttf    |
+#  | Cousine Nerd Font       | style=Bold Italic | /usr/share/fonts/truetype/cousine/CousineNerdFont-BoldItalic.ttf      |
+#  | Cousine Nerd Font       | style=Bold        | /usr/share/fonts/truetype/cousine/CousineNerdFont-Bold.ttf            |
+#  | Cousine Nerd Font       | style=Italic      | /usr/share/fonts/truetype/cousine/CousineNerdFont-Italic.ttf          |
+#  | Cousine Nerd Font       | style=Regular     | /usr/share/fonts/truetype/cousine/CousineNerdFont-Regular.ttf         |
+#
+FONT_FAMILY_MARKDOWN_TABLE="$(
+        echo "$FONT_FAMILY_CSV" | csvlook -HK2 || {
+                echo "Failed to generate markdown table with $(csvlook), here's the CSV itself:"
+                echo "$FONT_FAMILY_CSV"
+        }
+)"
+
+# EXAMPLE ASCIIDOCTOR TABLE AS SAVED in "$FONT_FAMILY_ASCIIDOC_TABLE"
+#
+#  [grid=rows]
+#  |====
+#  | Cousine Nerd Font Mono  | Bold        | /usr/share/fonts/truetype/cousine/CousineNerdFontMono-Bold.ttf
+#  | Cousine Nerd Font Mono  | Italic      | /usr/share/fonts/truetype/cousine/CousineNerdFontMono-Italic.ttf
+#  | Cousine Nerd Font Mono  | Regular     | /usr/share/fonts/truetype/cousine/CousineNerdFontMono-Regular.ttf
+#  | Cousine Nerd Font Propo | Bold Italic | /usr/share/fonts/truetype/cousine/CousineNerdFontPropo-BoldItalic.ttf
+#  | Cousine Nerd Font Propo | Bold        | /usr/share/fonts/truetype/cousine/CousineNerdFontPropo-Bold.ttf
+#  | Cousine Nerd Font Propo | Italic      | /usr/share/fonts/truetype/cousine/CousineNerdFontPropo-Italic.ttf
+#  | Cousine Nerd Font Propo | Regular     | /usr/share/fonts/truetype/cousine/CousineNerdFontPropo-Regular.ttf
+#  | Cousine Nerd Font       | Bold Italic | /usr/share/fonts/truetype/cousine/CousineNerdFont-BoldItalic.ttf
+#  | Cousine Nerd Font       | Bold        | /usr/share/fonts/truetype/cousine/CousineNerdFont-Bold.ttf
+#  | Cousine Nerd Font       | Italic      | /usr/share/fonts/truetype/cousine/CousineNerdFont-Italic.ttf
+#  | Cousine Nerd Font       | Regular     | /usr/share/fonts/truetype/cousine/CousineNerdFont-Regular.ttf
+#  | Cousine                 | Bold Italic | /usr/share/fonts/truetype/croscore/Cousine-BoldItalic.ttf
+#  | Cousine                 | Bold        | /usr/share/fonts/truetype/croscore/Cousine-Bold.ttf
+#  | Cousine                 | Italic      | /usr/share/fonts/truetype/croscore/Cousine-Italic.ttf
+#  | Cousine                 | Regular     | /usr/share/fonts/truetype/croscore/Cousine-Regular.ttf
+#  |====
+#
+FONT_FAMILY_ASCIIDOC_TABLE_BODY="$(echo "$FONT_FAMILY_MARKDOWN_TABLE" | tail -n+3 | sed -E 's/\|$//g')"
+FONT_FAMILY_ASCIIDOC_TABLE="$(
+        cat <<EOF
+[grid=rows]
+|====
+${FONT_FAMILY_ASCIIDOC_TABLE_BODY}
+|====
+EOF
+)"
+
+echo "$FONT_FAMILY_ASCIIDOC_TABLE"
